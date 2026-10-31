@@ -4,6 +4,18 @@ server:
 spring:
   application:
     name: ms-tercero
+  webflux:
+    multipart:
+      max-in-memory-size: 10MB
+  # schema.sql crea la tabla tercero_registrations si no existe. "always" porque con R2DBC
+  # (no es una base embebida) Spring Boot no lo corre automáticamente por defecto.
+  sql:
+    init:
+      mode: always
+  r2dbc:
+    url: ${POSTGRES_R2DBC_URL:r2dbc:postgresql://localhost:5432/ms_tercero}
+    username: ${POSTGRES_USERNAME:}
+    password: ${POSTGRES_PASSWORD:}
 
 management:
   endpoints:
@@ -15,8 +27,39 @@ management:
       probes:
         enabled: true
 
-# Sample driven-adapter config — point it at the real upstream, or delete the
-# example-client-api module once the real adapters (e.g. Azure Document Intelligence) are in.
-thirdparty:
-  client:
-    base-url: ${THIRDPARTY_CLIENT_BASE_URL:http://localhost:9090}
+# Azure AI Document Intelligence — Portal del recurso > "Keys and Endpoint" para endpoint/api-key.
+# Los model-id son los nombres de los modelos tal como aparecen en Document Intelligence Studio.
+azure:
+  document-intelligence:
+    endpoint: ${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT:}
+    api-key: ${AZURE_DOCUMENT_INTELLIGENCE_KEY:}
+    api-version: 2024-11-30
+    min-confidence: 0.85
+    classifier:
+      model-id: ${AZURE_DOCUMENT_INTELLIGENCE_CLASSIFIER_MODEL_ID:}
+      label-cedula: cedula
+      label-rut: rut
+    models:
+      cedula-model-id: ${AZURE_DOCUMENT_INTELLIGENCE_CEDULA_MODEL_ID:}
+      rut-model-id: ${AZURE_DOCUMENT_INTELLIGENCE_RUT_MODEL_ID:}
+    polling:
+      interval-millis: 2000
+      max-attempts: 30
+
+# Texto exacto que el modelo de RUT devuelve en el campo tipo_contribuyente para cada tipo de
+# solicitante. Ajusta si tu modelo usa otro texto.
+rut-validation:
+  tipo-contribuyente-natural: Persona Natural
+  tipo-contribuyente-juridica: Persona Jurídica
+
+# SendGrid — Settings > API Keys para la api-key. from-email debe ser un remitente verificado
+# en SendGrid (Settings > Sender Authentication), si no el envío falla.
+sendgrid:
+  api-key: ${SENDGRID_API_KEY:}
+  from-email: ${SENDGRID_FROM_EMAIL:}
+  from-name: ${SENDGRID_FROM_NAME:Universidad El Bosque}
+
+# Azure Blob Storage — Portal del Storage Account > "Access keys" para la connection string.
+blob-storage:
+  connection-string: ${BLOB_STORAGE_CONNECTION_STRING:}
+  container-name: ${BLOB_STORAGE_CONTAINER_NAME:tercero-documents}
